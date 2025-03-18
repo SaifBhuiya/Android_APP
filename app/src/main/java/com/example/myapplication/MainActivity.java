@@ -49,28 +49,28 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
         if(gyroSensor==null){
-            Toast.makeText(this, "gyroSensor not found", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "gyro sensor not found", Toast.LENGTH_SHORT).show();
             finish();
         }else{
             sensorManager.registerListener(this,gyroSensor,SensorManager.SENSOR_DELAY_NORMAL);
         }
 
         if(proxiSensor==null){
-            Toast.makeText(this, "proxiSensor not found", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "proximity sensor not found", Toast.LENGTH_SHORT).show();
             finish();
         }else{
-            sensorManager.registerListener(this,gyroSensor,SensorManager.SENSOR_DELAY_NORMAL);
+            sensorManager.registerListener(this,proxiSensor,SensorManager.SENSOR_DELAY_NORMAL);
         }
 
         if(lightSensor==null){
-            Toast.makeText(this, "Sensor not found", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Light sensor not found", Toast.LENGTH_SHORT).show();
             finish();
         }else{
             sensorManager.registerListener(this,lightSensor,SensorManager.SENSOR_DELAY_NORMAL);
         }
 
         if(accelSensor==null){
-            Toast.makeText(this, "Sensor not found", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Accelerometer not found", Toast.LENGTH_SHORT).show();
             finish();
         }else{
             sensorManager.registerListener(this,accelSensor,SensorManager.SENSOR_DELAY_NORMAL);
@@ -82,16 +82,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent event) {
         if(event.sensor.getType()==Sensor.TYPE_GYROSCOPE){
-            gyro.setText("Rotation " + event.values[0]);
+            gyro.setText("Gyroscope\n" + "X: " + event.values[0] + "\n" + "Y: " +event.values[1] + "\n" + "Z: " +event.values[2]);
         }
         if(event.sensor.getType()==Sensor.TYPE_PROXIMITY){
-            proximity.setText("Distance " + event.values[0]);
+            proximity.setText("Proximity Sensor\n" + event.values[0]);
         }
         if(event.sensor.getType()==Sensor.TYPE_LIGHT){
-            light.setText("Distance " + event.values[0]);
+            light.setText("Light Sensor\n" + event.values[0]);
         }
         if(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER){
-            acceloro.setText("accelerometer " + event.values[0]);
+            acceloro.setText("Accelerometer\n" + "X: " + event.values[0] + "\n" + "Y: " +event.values[1] + "\n" + "Z: " +event.values[2] );
         }
 
     }//On sensor changes
