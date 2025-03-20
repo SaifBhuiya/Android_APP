@@ -13,7 +13,7 @@ public class DbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(String.format("CREATE TABLE sensors (id INTEGER PRIMARY KEY AUTOINCREMENT, light REAL, proximity REAL,accelerometer TEXT, gyroscope TEXT)"));
+        db.execSQL(String.format("CREATE TABLE sensors (id INTEGER PRIMARY KEY AUTOINCREMENT, light REAL, proximity REAL, accelerometer_x REAL, accelerometer_y REAL, accelerometer_z REAL, gyroscope_x REAL,gyroscope_y REAL, gyroscope_z REAL)"));
     }
 
     @Override
