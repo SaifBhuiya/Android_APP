@@ -130,24 +130,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 if (currentSensor != null) {
                     switch (currentSensor) {
                         case "light":
-                            //testData.setText(readSensorData("light"));
-                            readSensorData("light");
-                            LightChart();
+                            if(readSensorData("light") != ""){
+                                LightChart();
+                                testData.setText("");
+                            }
+                            else{
+                                testData.setText("Fetching Sensor data...");
+                            }
                             break;
                         case "proximity":
-                            //testData.setText(readSensorData("proximity"));
-                            readSensorData("proximity");
-                            ProximityChart();
+                            if(readSensorData("proximity")!= ""){
+                                ProximityChart();
+                                testData.setText("");
+
+                            }
+                            else{
+                                testData.setText("Fetching Sensor data...");
+                            }
                             break;
                         case "accelerometer":
-                           // testData.setText(readSensorData("accelerometer"));
-                            readSensorData("accelerometer");
-                            AccelerometerChart();
+                            // testData.setText(readSensorData("accelerometer"));
+                            if(readSensorData("accelerometer")!= ""){
+                                AccelerometerChart();
+                                testData.setText("");
+
+                            }else{
+                                testData.setText("Fetching Sensor data...");
+                            }
                             break;
                         case "gyroscope":
-                            //testData.setText(readSensorData("gyroscope"));
-                            readSensorData("gyroscope");
-                            GyroscopeChart();
+                            if(readSensorData("gyroscope")!= ""){
+                                GyroscopeChart();
+                                testData.setText("");
+
+                            }else{
+                                testData.setText("Fetching Sensor data...");
+                            }
                             break;
                     }
                 }
