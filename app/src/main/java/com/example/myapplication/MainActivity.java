@@ -1,7 +1,12 @@
 package com.example.myapplication;
 
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
@@ -9,23 +14,28 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.Description;
@@ -50,6 +60,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private List<String> xValues;
 
     String dataList,xdata,ydata,zdata = "";
+    private Handler chartUpdateHandler = new Handler(Looper.getMainLooper());
+    private Runnable chartUpdateRunnable;
+    private String currentSensor = null;
+
+
 
 
 
@@ -62,26 +77,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
+        scheduleAlarm();
 
+//        Intent serviceIntent = new Intent(this,ForegroundService.class);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+//            // Use startForegroundService() for API 26+
+//            this.startForegroundService(new Intent(this, ForegroundService.class));
+//        } else {
+//            // Use startService() for API 24-25
+//            this.startService(new Intent(this, ForegroundService.class));
+//        }
+
+        //To hide Phone UI
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN |
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
+       // insertSensorData(current_light,current_proximity,current_accelerometer_x,current_accelerometer_y,current_accelerometer_z,current_gyroscope_x,current_gyroscope_y,current_gyroscope_z);
 
-        timer = new Timer();
+        ////        timer.scheduleAtFixedRate(timerTask, 0, 300000);
 
-        timerTask = new TimerTask() {
-            @Override
-            public void run() {
-                // Your background task here, for example:
-                insertSensorData(current_light,current_proximity,current_accelerometer_x,current_accelerometer_y,current_accelerometer_z,current_gyroscope_x,current_gyroscope_y,current_gyroscope_z);
+      //  timer.schedule(timerTask, 500, 60000);
 
-            }
-        };
-
-//        timer.scheduleAtFixedRate(timerTask, 0, 300000);
-        timer.scheduleAtFixedRate(timerTask, 0, 3000);
+//        new Timer().schedule(new TimerTask() {
+//            @Override
+//            public void run() {
+//                dbHelper.insertSensorData(current_light,current_proximity,current_accelerometer_x,current_accelerometer_y,current_accelerometer_z,current_gyroscope_x,current_gyroscope_y,current_gyroscope_z);
+//            }
+//        }, 500); // Runs after .5 seconds (500ms)
 
         //setting values to the variables declared earlier
         initialize();
@@ -92,8 +116,77 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         registerSensor(lightSensor);
         registerSensor(accelSensor);
 
+      // dbHelper.insertSensorData(current_light,current_proximity,current_accelerometer_x,current_accelerometer_y,current_accelerometer_z,current_gyroscope_x,current_gyroscope_y,current_gyroscope_z);
+  startChartUpdates();
 
     }
+
+    private void startChartUpdates() {
+        // Create the runnable that will update the charts
+        chartUpdateRunnable = new Runnable() {
+            @Override
+            public void run() {
+                // Only update if a chart is currently displayed (currentSensor is set)
+                if (currentSensor != null) {
+                    switch (currentSensor) {
+                        case "light":
+                            //testData.setText(readSensorData("light"));
+                            readSensorData("light");
+                            LightChart();
+                            break;
+                        case "proximity":
+                            //testData.setText(readSensorData("proximity"));
+                            readSensorData("proximity");
+                            ProximityChart();
+                            break;
+                        case "accelerometer":
+                           // testData.setText(readSensorData("accelerometer"));
+                            readSensorData("accelerometer");
+                            AccelerometerChart();
+                            break;
+                        case "gyroscope":
+                            //testData.setText(readSensorData("gyroscope"));
+                            readSensorData("gyroscope");
+                            GyroscopeChart();
+                            break;
+                    }
+                }
+
+                // Schedule the next update in 60 seconds
+                chartUpdateHandler.postDelayed(this, 2000);
+            }
+        };
+
+        // Start the updates immediately
+        chartUpdateHandler.post(chartUpdateRunnable);
+    }
+
+    //handle phone rotation
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+            }
+
+
+//
+    private void scheduleAlarm() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        Intent intent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        long triggerTime = System.currentTimeMillis(); // Trigger immediately
+
+        if (alarmManager != null) {
+            alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
+            );
+        }
+
+    }
+
     public void initialize(){
         dbHelper = new DbHelper(this);
 
@@ -124,39 +217,73 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setClickListeners(accel_card,2);
         setClickListeners(gyro_card,3);
 
-    }
+    }// set values to variables
 
 
-    public void setClickListeners(CardView cardname,int sensornum){
-        //cardname = the card variable
+    public void setClickListeners(CardView cardname, int sensornum) {
         cardname.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 setContentView(R.layout.view_timeseries_graph);
-               // Toast.makeText(MainActivity.this,"", Toast.LENGTH_SHORT).show();
 
-                //testing if data loads successfully
+                // Set the current sensor type based on sensornum
+                if (sensornum == 0) {
+                    currentSensor = "light";
+                } else if (sensornum == 1) {
+                    currentSensor = "proximity";
+                } else if (sensornum == 2) {
+                    currentSensor = "accelerometer";
+                } else {
+                    currentSensor = "gyroscope";
+                }
+
+                // Initialize the testData TextView
                 testData = findViewById(R.id.light_data);
-                if(sensornum==0){
-                    testData.setText(readSensorData("light"));
-                    LightChart();
+
+                // Update the chart immediately
+                if (currentSensor.equals("light")) {
+                    //testData.setText(readSensorData("light"));
+                    if(readSensorData("light") != ""){
+                        LightChart();
+                        testData.setText("");
+                        }
+                    else{
+                        testData.setText("Fetching Sensor data...");
+                    }
+                } else if (currentSensor.equals("proximity")) {
+                    //testData.setText(readSensorData("proximity"));
+                    if(readSensorData("proximity")!= ""){
+                        ProximityChart();
+                        testData.setText("");
+
+                    }
+                    else{
+                        testData.setText("Fetching Sensor data...");
+                    }
+
+                } else if (currentSensor.equals("accelerometer")) {
+                   // testData.setText(readSensorData("accelerometer"));
+                    if(readSensorData("accelerometer")!= ""){
+                        AccelerometerChart();
+                        testData.setText("");
+
+                    }else{
+                        testData.setText("Fetching Sensor data...");
+                    }
+
+                } else {
+                    //testData.setText(readSensorData("gyroscope"));
+                    if(readSensorData("gyroscope")!= ""){
+                    GyroscopeChart();
+                        testData.setText("");
+
+                    }else{
+                        testData.setText("Fetching Sensor data...");
+                    }
                 }
-                else if(sensornum==1){
-                    testData.setText(readSensorData("proximity"));
-                    ProximityChart();
-                } else if (sensornum==2) {
-                    testData.setText(readSensorData("accelerometer"));
-                    AccelerometerChart();
-
-                } else{
-                    testData.setText(readSensorData("gyroscope"));
-                   GyroscopeChart();
-                }
-
-
-    }
+            }
         });
-    }
+    }//Detect which card has been clicked and adjust view accordingly
     private void LightChart(){
         //https://www.youtube.com/watch?v=KIW4Vp8mjLo
 
@@ -167,6 +294,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lineChart.setDescription(description);
         lineChart.getAxisRight().setDrawLabels(false);
 
+
+        XAxis xAxis = lineChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setGranularity(5f);
 //        xValues = Arrays.asList("Nadun", "Kural", "Panther");
 //
 //        XAxis xAxis = lineChart.getXAxis();
@@ -190,8 +321,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             entries.add(new Entry(index,Float.parseFloat(item)));
 
 //        //update x axis value
-//        List<String> xValues = new ArrayList<>(); // Create a dynamic list
-//        xValues.add(index + " mins");
+//         List<String> xValues = new ArrayList<>(); // Create a dynamic list
+//         xValues.add(index + " mins");
 //        XAxis xAxis = lineChart.getXAxis();
 //        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
 //        xAxis.setValueFormatter(new IndexAxisValueFormatter(xValues));
@@ -211,7 +342,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         LineData lineData = new LineData(dataSet1);
         lineChart.setData(lineData);
         lineChart.invalidate();
-    }
+    }//Create chart if light card clicked
 
     private void ProximityChart(){
 
@@ -222,7 +353,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lineChart.setDescription(description);
         lineChart.getAxisRight().setDrawLabels(false);
 
-
+        XAxis xAxis = lineChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setGranularity(5f);
 
         YAxis yAxis = lineChart.getAxisLeft();
         yAxis.setAxisMinimum(0f);
@@ -249,7 +382,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         LineData lineData = new LineData(dataSet1);
         lineChart.setData(lineData);
         lineChart.invalidate();
-    }
+    }//Create chart if proximity card clicked
 
     private void GyroscopeChart(){
         //https://www.youtube.com/watch?v=KIW4Vp8mjLo
@@ -261,6 +394,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lineChart.setDescription(description);
         lineChart.getAxisRight().setDrawLabels(false);
 
+        XAxis xAxis = lineChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setGranularity(5f);
 
         YAxis yAxis = lineChart.getAxisLeft();
         yAxis.setAxisMinimum(-10f);
@@ -275,14 +411,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         int index = 0;
         for (String item : items) {
             entries.add(new Entry(index,Float.parseFloat(item)));
-            index++;
+            index+=5;
         }
         List<Entry> entries2 = new ArrayList<>();
         String[] items2 = ydata.split(",");
         index = 0;
         for (String item : items2) {
             entries2.add(new Entry(index,Float.parseFloat(item)));
-            index++;
+            index+=5;
         }
         List<Entry> entries3 = new ArrayList<>();
         String[] items3 = zdata.split(",");
@@ -290,7 +426,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         for (String item : items3) {
 
             entries3.add(new Entry(index,Float.parseFloat(item)));
-            index++;
+            index+=5;
 
         }
 
@@ -307,7 +443,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         LineData lineData = new LineData(dataSet1,dataSet2,dataSet3);
         lineChart.setData(lineData);
         lineChart.invalidate();
-    }
+    }//Create chart if gyroscope card clicked
     private void AccelerometerChart(){
         //https://www.youtube.com/watch?v=KIW4Vp8mjLo
 
@@ -318,11 +454,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         lineChart.setDescription(description);
         lineChart.getAxisRight().setDrawLabels(false);
 
+        XAxis xAxis = lineChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setGranularity(5f);
 
         YAxis yAxis = lineChart.getAxisLeft();
-        yAxis.setAxisMinimum(-10f);
+        yAxis.setAxisMinimum(-100f);
         //limiting max scale to view clear graph
-        yAxis.setAxisMaximum(10f);
+        yAxis.setAxisMaximum(100f);
         yAxis.setAxisLineWidth(2f);
         yAxis.setAxisLineColor(Color.BLACK);
         yAxis.setLabelCount(10);
@@ -332,14 +471,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         int index = 0;
         for (String item : items) {
             entries.add(new Entry(index,Float.parseFloat(item)));
-            index++;
+            index+=5;
         }
         List<Entry> entries2 = new ArrayList<>();
         String[] items2 = ydata.split(",");
         index = 0;
         for (String item : items2) {
             entries2.add(new Entry(index,Float.parseFloat(item)));
-            index++;
+            index+=5;
         }
         List<Entry> entries3 = new ArrayList<>();
         String[] items3 = zdata.split(",");
@@ -347,7 +486,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         for (String item : items3) {
 
             entries3.add(new Entry(index,Float.parseFloat(item)));
-            index++;
+            index+=5;
 
         }
 
@@ -364,7 +503,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         LineData lineData = new LineData(dataSet1,dataSet2,dataSet3);
         lineChart.setData(lineData);
         lineChart.invalidate();
-    }
+    }//Create chart if accelerometer card clicked
 
     public void registerSensor(Sensor sensorname){
         if(sensorname==null){
@@ -373,7 +512,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }else{
             sensorManager.registerListener(this,sensorname,SensorManager.SENSOR_DELAY_NORMAL);
         }
-    }
+    }//register sensor to read data
 
     public String extractValue(String input, String label, String endDelimiter) {
         int startIndex = input.indexOf(label);
@@ -393,14 +532,15 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         return input.substring(startIndex, endIndex).trim(); // Extract and return the value
     }
 
-    //returns view to home page and reinitialized view
+
     public void back_button_click(View v){
+        currentSensor = null;
 
         setContentView(R.layout.activity_main);
         initialize();
 
 
-        }
+        }//returns view to home page and reinitialized view
 
 
     public String readSensorData(String columnName){
@@ -411,6 +551,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         zdata = "";
 
         Cursor cursor;
+
 
         // If the column is gyroscope, query all three sub-columns
         if (columnName.equals("gyroscope")) {
@@ -433,6 +574,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     if (columnIndex != -1) {
                         float value = cursor.getFloat(columnIndex);
                         dataList += value + ",";
+
                     }
                 }
                 if (columnName.equals("gyroscope")) {
@@ -440,7 +582,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     int yIndex = cursor.getColumnIndex("gyroscope_y");
                     int zIndex = cursor.getColumnIndex("gyroscope_z");
 
-                    if (xIndex != -1) xdata += cursor.getFloat(xIndex) + ",";
+                    if (xIndex != -1) {
+                        xdata += cursor.getFloat(xIndex) + ",";
+                        dataList  = xdata;
+                    }
                     if (yIndex != -1) ydata += cursor.getFloat(yIndex) + ",";
                     if (zIndex != -1) zdata += cursor.getFloat(zIndex) + ",";
 
@@ -452,7 +597,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     int yIndex = cursor.getColumnIndex("accelerometer_y");
                     int zIndex = cursor.getColumnIndex("accelerometer_z");
 
-                    if (xIndex != -1) xdata += cursor.getFloat(xIndex) + ",";
+                    if (xIndex != -1) {
+                        xdata += cursor.getFloat(xIndex) + ",";
+                        dataList = xdata;
+                    }
                     if (yIndex != -1) ydata += cursor.getFloat(yIndex) + ",";
                     if (zIndex != -1) zdata += cursor.getFloat(zIndex) + ",";
 
@@ -464,30 +612,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         db.close();
 
-        return dataList; // Change this if you want to return gyroscope data instead
-    }
+        return dataList;
+    }//Read data from SQLite to use in Chart
 
 
 
-    public void insertSensorData(float light, float proximity, float accelerometer_x, float accelerometer_y,float accelerometer_z,float gyroscope_x, float gyroscope_y, float gyroscope_z) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        ContentValues values = new ContentValues();
-        values.put("light", light);
-        values.put("proximity", proximity);
-        values.put("accelerometer_x", accelerometer_x);
-        values.put("accelerometer_y", accelerometer_y);
-        values.put("accelerometer_z", accelerometer_z);
-        values.put("gyroscope_x", gyroscope_x);
-        values.put("gyroscope_y", gyroscope_y);
-        values.put("gyroscope_z", gyroscope_z);
-
-
-
-        db.insert("sensors", null, values);
-        db.close();
-
-    }// write data to database
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -496,7 +625,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             current_gyroscope_x = (event.values[0]);
             current_gyroscope_y = (event.values[1]);
             current_gyroscope_z = (event.values[2]);
-
+            //Toast.makeText(MainActivity.this, current_gyroscope_x +"", Toast.LENGTH_SHORT).show();
         }
         if(event.sensor.getType()==Sensor.TYPE_PROXIMITY){
             proximity.setText("Proximity Sensor\n" + event.values[0]);
@@ -508,23 +637,32 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         if(event.sensor.getType()==Sensor.TYPE_ACCELEROMETER){
             acceloro.setText("Accelerometer\n" + "X: " + event.values[0] + "\n" + "Y: " +event.values[1] + "\n" + "Z: " +event.values[2] );
+
             current_accelerometer_x = event.values[0];
             current_accelerometer_y = event.values[1];
             current_accelerometer_z = event.values[2];
         }
 
-    }//handle home screen values
+    }//handle home screen values (live updates)
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        chartUpdateHandler.post(chartUpdateRunnable);
+    }
 
+//
     @Override
     protected void onStop(){
         super.onStop();
         sensorManager.unregisterListener(this);
+        chartUpdateHandler.removeCallbacks(chartUpdateRunnable);
+
     }
 
 }

@@ -1,5 +1,6 @@
 package com.example.myapplication;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -20,5 +21,24 @@ public class DbHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
     }
+    public void insertSensorData(float light, float proximity, float accelerometer_x, float accelerometer_y,float accelerometer_z,float gyroscope_x, float gyroscope_y, float gyroscope_z) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put("light", light);
+        values.put("proximity", proximity);
+        values.put("accelerometer_x", accelerometer_x);
+        values.put("accelerometer_y", accelerometer_y);
+        values.put("accelerometer_z", accelerometer_z);
+        values.put("gyroscope_x", gyroscope_x);
+        values.put("gyroscope_y", gyroscope_y);
+        values.put("gyroscope_z", gyroscope_z);
+
+
+
+        db.insert("sensors", null, values);
+        db.close();
+
+    }// write data to database
 
 }
