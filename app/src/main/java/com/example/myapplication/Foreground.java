@@ -1,5 +1,4 @@
 package com.example.myapplication;
-
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -12,6 +11,14 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 
 public class Foreground extends Service {
+    private float current_light = 0;
+    private float current_proximity = 0;
+    private float current_accelerometer_x = 0;
+    private float current_accelerometer_y = 0;
+    private float current_accelerometer_z = 0;
+    private float current_gyroscope_x = 0;
+    private float current_gyroscope_y = 0;
+    private float current_gyroscope_z = 0;
 
     @Nullable
     @Override
@@ -36,18 +43,28 @@ public class Foreground extends Service {
                 }
         ).start();
         final String CHANNEL_ID="Foreground Service";
-        NotificationChannel channel = new NotificationChannel(CHANNEL_ID,CHANNEL_ID, NotificationManager.IMPORTANCE_LOW);
 
-        getSystemService(NotificationManager.class).createNotificationChannel(channel);
-        Notification.Builder notification = new Notification.Builder(this, CHANNEL_ID)
+
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, CHANNEL_ID,
+                    NotificationManager.IMPORTANCE_LOW);
+            getSystemService(NotificationManager.class).createNotificationChannel(channel);
+        }
+
+        NotificationCompat.Builder notification = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("My Application")
-                .setContentText("\"Sensor Application\", \"Light Sensor: \" + current_light + \"\\t Proximity sensor: \"+ current_proximity\n" +
-                        "        + \"\\tAccelerometer (x, y, z) : \"+ current_accelerometer_x + \", \" +current_accelerometer_y + \", \" +current_accelerometer_z+\n" +
-                        "                \"\\nGyroscope (x, y, z) : \" + current_gyroscope_x + \", \" + current_gyroscope_y + \", \"+current_gyroscope_z ");
+                .setStyle(new NotificationCompat.BigTextStyle().bigText("Light Sensor: " + current_light + "\t Proximity sensor: "+ current_proximity +
+                        "\tAccelerometer (x, y, z) : " + current_accelerometer_x +", "+ current_accelerometer_y + ", " +current_accelerometer_z+"\n" +
+                        "\nGyroscope (x, y, z) :"  + current_gyroscope_x + ", " + current_gyroscope_y + ", " + current_gyroscope_z ))
+                .setContentText("Light Sensor: " + current_light + "\t Proximity sensor: "+ current_proximity +
+                        "\tAccelerometer (x, y, z) : " + current_accelerometer_x +", "+ current_accelerometer_y + ", " +current_accelerometer_z+"\n" +
+                        "\nGyroscope (x, y, z) :"  + current_gyroscope_x + ", " + current_gyroscope_y + ", " + current_gyroscope_z  );
         startForeground(1001,notification.build());
         return super.onStartCommand(intent, flags, startId);
     }
 
 
 }
+

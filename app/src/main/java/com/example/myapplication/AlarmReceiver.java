@@ -1,4 +1,5 @@
 package com.example.myapplication;
+
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -28,7 +29,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         );
 
         // Set the next alarm 5 minutes (300,000 milliseconds) after the current one
-        long triggerTime = SystemClock.elapsedRealtime() + 30000;
+        long triggerTime = SystemClock.elapsedRealtime() + 60000; // 5 minutes later 2 sec for workmanager
 
         if (alarmManager != null) {
             alarmManager.setExact(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerTime, pendingIntent);
