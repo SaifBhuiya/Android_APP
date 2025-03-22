@@ -1,6 +1,7 @@
 package com.example.myapplication;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.ContentValues;
@@ -16,10 +17,12 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -78,10 +81,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        scheduleAlarmIfNeeded();
+           // scheduleAlarm();
+        scheduleAlarm();
 
+//        Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+//        intent.setData(Uri.parse("package:" + getPackageName()));
+//        startActivity(intent);
 
-
+        Intent serviceIntent = new Intent(this, Foreground.class);
+        startForegroundService(serviceIntent);
+        foregroundServiceRunning();
 
 
         //To hide Phone buttons
@@ -96,6 +105,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         checkNotificationPermission();
         startChartUpdates();
     }//When app is opened
+
+    public boolean foregroundServiceRunning(){
+        ActivityManager activityManager = (ActivityManager) getSystemService((Context.ACTIVITY_SERVICE));
+    for(ActivityManager.RunningServiceInfo service: activityManager.getRunningServices(Integer.MAX_VALUE)){
+        if(Foreground.class.getName().equals(service.service.getClassName())){
+            return true;
+        }
+    }
+
+    return false;
+    }
     private void checkNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
@@ -172,25 +192,41 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onConfigurationChanged(newConfig);
             } //handle phone rotation
 
+//    private void scheduleAlarmIfNeeded() {
+//        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+//        boolean alarmInitialized = prefs.getBoolean("alarm_initialized", false);
+//
+//        if (!alarmInitialized) {
+//            // Schedule the alarm only if it hasn't been done before
+//            scheduleAlarm();
+//
+//            // Mark that we've initialized the alarm
+//            SharedPreferences.Editor editor = prefs.edit();
+//            editor.putBoolean("alarm_initialized", true);
+//            editor.apply();
+//        }
+//    }
+//
+//    private void scheduleAlarm() {
+//        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+//        Intent intent = new Intent(this, AlarmReceiver.class);
+//        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+//                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+//        );
+//
+//        long triggerTime = System.currentTimeMillis(); // Trigger immediately
+//
+//        if (alarmManager != null) {
+//            alarmManager.setExact(
+//                    AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
+//            );
+//        }
+//    }
 
-
-    private void scheduleAlarmIfNeeded() {
-        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
-        boolean alarmInitialized = prefs.getBoolean("alarm_initialized", false);
-
-        if (!alarmInitialized) {
-            // Schedule the alarm only if it hasn't been done before
-            scheduleAlarm();
-
-            // Mark that we've initialized the alarm
-            SharedPreferences.Editor editor = prefs.edit();
-            editor.putBoolean("alarm_initialized", true);
-            editor.apply();
-        }
-    }
 
     private void scheduleAlarm() {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
         Intent intent = new Intent(this, AlarmReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
@@ -203,6 +239,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
             );
         }
+
     }//Start the chain reaction of background execution (upload first value as soon as app starts)
 
     public void initialize(){

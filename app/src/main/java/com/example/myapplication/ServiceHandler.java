@@ -20,7 +20,7 @@ public class ServiceHandler extends Worker {
     private Sensor gyroSensor, lightSensor, accelSensor, proxiSensor;
     private DbHelper dbHelper;
     private float current_light, current_proximity, current_accelerometer_x, current_accelerometer_y, current_accelerometer_z, current_gyroscope_x, current_gyroscope_y, current_gyroscope_z;
-    private static final String CHANNEL_ID = "workmanager_channel";
+   // private static final String CHANNEL_ID = "workmanager_channel";
 
     public ServiceHandler(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -36,45 +36,45 @@ public class ServiceHandler extends Worker {
         }
     }
 
-    private void showNotification(String title, String message) {
-        Context context = getApplicationContext();
-
-        Intent intent = new Intent(context, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground) // Make sure you have this icon
-                .setContentTitle(title)
-                .setContentText(message)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true)
-                .setContentIntent(pendingIntent);
-
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (notificationManager != null) {
-            notificationManager.notify(1, builder.build());
-        }
-    }
-
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { // Android 8+ requires notification channels
-            CharSequence name = "WorkManager Notifications";
-            String description = "Notifications from WorkManager background tasks";
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-
-            NotificationManager notificationManager = getApplicationContext().getSystemService(NotificationManager.class);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-            }
-        }
-    }
+//    private void showNotification(String title, String message) {
+//        Context context = getApplicationContext();
+//
+//        Intent intent = new Intent(context, MainActivity.class);
+//        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//        PendingIntent pendingIntent = PendingIntent.getActivity(
+//                context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+//        );
+//
+//        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+//                .setSmallIcon(R.drawable.ic_launcher_foreground)
+//                .setContentTitle(title)
+//                .setContentText(message)
+//                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
+//                .setPriority(NotificationCompat.PRIORITY_HIGH)
+//                .setAutoCancel(true)
+//                .setContentIntent(pendingIntent);
+//
+//        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+//        if (notificationManager != null) {
+//            notificationManager.notify(1, builder.build());
+//        }
+//    }
+//
+//    private void createNotificationChannel() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) { // Android 8+ requires notification channels
+//            CharSequence name = "WorkManager Notifications";
+//            String description = "Notifications from WorkManager background tasks";
+//            int importance = NotificationManager.IMPORTANCE_HIGH;
+//
+//            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+//            channel.setDescription(description);
+//
+//            NotificationManager notificationManager = getApplicationContext().getSystemService(NotificationManager.class);
+//            if (notificationManager != null) {
+//                notificationManager.createNotificationChannel(channel);
+//            }
+//        }
+//    }
 
     @NonNull
     @Override
@@ -82,7 +82,7 @@ public class ServiceHandler extends Worker {
         if (sensorManager == null) {
             return Result.failure();
         }
-        createNotificationChannel(); // Ensure notification channel exists
+      //  createNotificationChannel();
 
         // Register sensors and collect data
         SensorEventListener listener = new SensorEventListener() {
@@ -131,9 +131,9 @@ public class ServiceHandler extends Worker {
                 current_gyroscope_x, current_gyroscope_y, current_gyroscope_z
         );
 
-        showNotification("Sensor Application", "Light Sensor: " + current_light + "\t Proximity sensor: "+ current_proximity
-        + "\tAccelerometer (x, y, z) : "+ current_accelerometer_x + ", " +current_accelerometer_y + ", " +current_accelerometer_z+
-                "\nGyroscope (x, y, z) : " + current_gyroscope_x + ", " + current_gyroscope_y + ", "+current_gyroscope_z );
+//        showNotification("Sensor Application", "Light Sensor: " + current_light + "\t Proximity sensor: "+ current_proximity
+//        + "\tAccelerometer (x, y, z) : "+ current_accelerometer_x + ", " +current_accelerometer_y + ", " +current_accelerometer_z+
+//                "\nGyroscope (x, y, z) : " + current_gyroscope_x + ", " + current_gyroscope_y + ", "+current_gyroscope_z );
 
         return Result.success();
     }
