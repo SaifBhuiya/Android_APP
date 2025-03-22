@@ -69,6 +69,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private String currentSensor = null;
     private static final int NOTIFICATION_PERMISSION_CODE = 123;
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -96,8 +97,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         SharedPreferences prefs = getSharedPreferences("MyPrefs", MODE_PRIVATE);
         boolean firstRun = prefs.getBoolean("firstRun", true);
         if (firstRun) {
-            // Insert default data here (if needed)
-
             SharedPreferences.Editor editor = prefs.edit();
             editor.putBoolean("firstRun", false);
             editor.apply();
@@ -105,8 +104,24 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
         Intent serviceIntent = new Intent(this, Foreground.class);
-        startForegroundService(serviceIntent);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            startForegroundService(serviceIntent);
+        } else {
+            startService(serviceIntent);
+        }
         foregroundServiceRunning();
+
+
+        Intent intent = new Intent("com.example.UPDATE_SENSOR_DATA");
+        intent.putExtra("light", current_light);
+        intent.putExtra("proximity", current_proximity);
+        intent.putExtra("accelerometer_x", current_accelerometer_x);
+        intent.putExtra("accelerometer_y", current_accelerometer_y);
+        intent.putExtra("accelerometer_z", current_accelerometer_z);
+        intent.putExtra("gyroscope_x", current_gyroscope_x);
+        intent.putExtra("gyroscope_y", current_gyroscope_y);
+        intent.putExtra("gyroscope_z", current_gyroscope_z);
+        this.sendBroadcast(intent);
 
 //
 
@@ -213,11 +228,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }
 
-    //handle phone rotation
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-    }
+    }//handle phone rotation
 
 
     //
@@ -237,7 +252,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
             );
         }
-    }
+    }//Alarm every 5 mins
 
 
     public void initialize(){
