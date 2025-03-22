@@ -245,7 +245,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         );
 
         // Trigger alarm after 5 minutes (300000 milliseconds)
-        long triggerTime = System.currentTimeMillis() + 60000;
+        long triggerTime = System.currentTimeMillis() + 300000;
 
         if (alarmManager != null) {
             alarmManager.setExact(
