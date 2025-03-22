@@ -28,7 +28,7 @@ public class AlarmReceiver extends BroadcastReceiver {
         );
 
         // Set the next alarm 5 minutes (300,000 milliseconds) after the current one
-        long triggerTime = SystemClock.elapsedRealtime() + 58000; // 5 minutes later 2 sec for workmanager
+        long triggerTime = SystemClock.elapsedRealtime() + 300000; // 5 minutes later 2 sec for workmanager
 
         if (alarmManager != null) {
             alarmManager.setExact(AlarmManager.ELAPSED_REALTIME_WAKEUP, triggerTime, pendingIntent);

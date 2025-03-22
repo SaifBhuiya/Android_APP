@@ -6,6 +6,8 @@ import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -21,6 +23,7 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.Manifest;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -32,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.core.content.ContextCompat;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
@@ -63,10 +67,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private Handler chartUpdateHandler = new Handler(Looper.getMainLooper());
     private Runnable chartUpdateRunnable;
     private String currentSensor = null;
-
-
-
-
+    private static final int NOTIFICATION_PERMISSION_CODE = 123;
 
 
 
@@ -77,48 +78,35 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        scheduleAlarm();
+        scheduleAlarmIfNeeded();
 
-//        Intent serviceIntent = new Intent(this,ForegroundService.class);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-//            // Use startForegroundService() for API 26+
-//            this.startForegroundService(new Intent(this, ForegroundService.class));
-//        } else {
-//            // Use startService() for API 24-25
-//            this.startService(new Intent(this, ForegroundService.class));
-//        }
 
-        //To hide Phone UI
+
+
+
+        //To hide Phone buttons
         getWindow().getDecorView().setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_FULLSCREEN |
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
-       // insertSensorData(current_light,current_proximity,current_accelerometer_x,current_accelerometer_y,current_accelerometer_z,current_gyroscope_x,current_gyroscope_y,current_gyroscope_z);
-
-        ////        timer.scheduleAtFixedRate(timerTask, 0, 300000);
-
-      //  timer.schedule(timerTask, 500, 60000);
-
-//        new Timer().schedule(new TimerTask() {
-//            @Override
-//            public void run() {
-//                dbHelper.insertSensorData(current_light,current_proximity,current_accelerometer_x,current_accelerometer_y,current_accelerometer_z,current_gyroscope_x,current_gyroscope_y,current_gyroscope_z);
-//            }
-//        }, 500); // Runs after .5 seconds (500ms)
 
         //setting values to the variables declared earlier
         initialize();
-
-        //calling function to registerListeners for sensor
-        registerSensor(gyroSensor);
-        registerSensor(proxiSensor);
-        registerSensor(lightSensor);
-        registerSensor(accelSensor);
-
-      // dbHelper.insertSensorData(current_light,current_proximity,current_accelerometer_x,current_accelerometer_y,current_accelerometer_z,current_gyroscope_x,current_gyroscope_y,current_gyroscope_z);
-  startChartUpdates();
-
+        checkNotificationPermission();
+        startChartUpdates();
+    }//When app is opened
+    private void checkNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+                    PackageManager.PERMISSION_GRANTED) {
+                // Shows the permission request dialog
+                requestPermissions(
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        NOTIFICATION_PERMISSION_CODE
+                );
+            }
+        }
     }
 
     private void startChartUpdates() {
@@ -169,27 +157,40 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                             break;
                     }
                 }
-
-                // Schedule the next update in 60 seconds
+                // Schedule the next update in 2 seconds
                 chartUpdateHandler.postDelayed(this, 2000);
             }
         };
 
         // Start the updates immediately
         chartUpdateHandler.post(chartUpdateRunnable);
-    }
+    }//Update chart in real time while app is open
 
-    //handle phone rotation
+
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
-            }
+            } //handle phone rotation
 
 
-//
+
+    private void scheduleAlarmIfNeeded() {
+        SharedPreferences prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE);
+        boolean alarmInitialized = prefs.getBoolean("alarm_initialized", false);
+
+        if (!alarmInitialized) {
+            // Schedule the alarm only if it hasn't been done before
+            scheduleAlarm();
+
+            // Mark that we've initialized the alarm
+            SharedPreferences.Editor editor = prefs.edit();
+            editor.putBoolean("alarm_initialized", true);
+            editor.apply();
+        }
+    }
+
     private void scheduleAlarm() {
         AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
         Intent intent = new Intent(this, AlarmReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
@@ -202,8 +203,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
             );
         }
-
-    }
+    }//Start the chain reaction of background execution (upload first value as soon as app starts)
 
     public void initialize(){
         dbHelper = new DbHelper(this);
@@ -235,7 +235,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         setClickListeners(accel_card,2);
         setClickListeners(gyro_card,3);
 
-    }// set values to variables
+        //calling function to registerListeners for sensor
+        registerSensor(gyroSensor);
+        registerSensor(proxiSensor);
+        registerSensor(lightSensor);
+        registerSensor(accelSensor);
+
+    }// set values to variables and call registersensor
 
 
     public void setClickListeners(CardView cardname, int sensornum) {
@@ -316,41 +322,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         XAxis xAxis = lineChart.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setGranularity(5f);
-//        xValues = Arrays.asList("Nadun", "Kural", "Panther");
-//
-//        XAxis xAxis = lineChart.getXAxis();
-//        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-//        xAxis.setValueFormatter(new IndexAxisValueFormatter(xValues));
-//        xAxis.setLabelCount(3);
-//        xAxis.setGranularity(1f);
-
         YAxis yAxis = lineChart.getAxisLeft();
         yAxis.setAxisMinimum(0f);
+
         //limiting max scale to view clear graph
         yAxis.setAxisMaximum(500f);
         yAxis.setAxisLineWidth(2f);
         yAxis.setAxisLineColor(Color.BLACK);
         yAxis.setLabelCount(10);
 
+        //loading values into the graph
         List<Entry> entries = new ArrayList<>();
         String[] items = dataList.split(",");
         int index = 0;
         for (String item : items) {
             entries.add(new Entry(index,Float.parseFloat(item)));
-
-//        //update x axis value
-//         List<String> xValues = new ArrayList<>(); // Create a dynamic list
-//         xValues.add(index + " mins");
-//        XAxis xAxis = lineChart.getXAxis();
-//        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
-//        xAxis.setValueFormatter(new IndexAxisValueFormatter(xValues));
-//        xAxis.setLabelCount(xValues.size(), true);
-//        xAxis.setGranularity(1f);
-//        lineChart.invalidate(); // Refresh chart
-
-
-            //increment index for 5 mins
-        index+=5;
+        index+=5; // increment value by 5 (5 mins)
         }
 
 
@@ -394,7 +381,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
 
 
-        LineDataSet dataSet1 = new LineDataSet(entries, "Accelerometer Sensor data");
+        LineDataSet dataSet1 = new LineDataSet(entries, "Proximity Sensor data");
         dataSet1.setColor(Color.BLUE);
 
         LineData lineData = new LineData(dataSet1);
@@ -532,25 +519,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }//register sensor to read data
 
-    public String extractValue(String input, String label, String endDelimiter) {
-        int startIndex = input.indexOf(label);
-
-        if (startIndex == -1) {
-            return null; // Label not found
-        }
-
-        startIndex += label.length(); // Move index past the label
-        int endIndex = input.indexOf(endDelimiter, startIndex); // Find the custom end delimiter
-
-        if (endIndex == -1) {
-            // If the end delimiter is not found, take the rest of the string
-            endIndex = input.length();
-        }
-
-        return input.substring(startIndex, endIndex).trim(); // Extract and return the value
-    }
-
-
     public void back_button_click(View v){
         currentSensor = null;
 
@@ -559,7 +527,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 
         }//returns view to home page and reinitialized view
-
 
     public String readSensorData(String columnName){
         SQLiteDatabase db = dbHelper.getReadableDatabase();
@@ -576,6 +543,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             cursor = db.query("sensors", new String[]{"gyroscope_x", "gyroscope_y", "gyroscope_z"},
                     null, null, null, null, null);
         }
+        // If the column is accelerometer, query all three sub-columns
         else if(columnName.equals("accelerometer")) {
             cursor = db.query("sensors", new String[]{"accelerometer_x", "accelerometer_y", "accelerometer_z"},
                     null, null, null, null, null);
@@ -596,6 +564,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                     }
                 }
                 if (columnName.equals("gyroscope")) {
+                    //store x , y and z data in separate variables
                     int xIndex = cursor.getColumnIndex("gyroscope_x");
                     int yIndex = cursor.getColumnIndex("gyroscope_y");
                     int zIndex = cursor.getColumnIndex("gyroscope_z");
@@ -611,6 +580,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 //                   Toast.makeText(MainActivity.this, "X: " + zdata, Toast.LENGTH_SHORT).show();
                 }
                 if(columnName.equals("accelerometer")) {
+                    //store x , y and z data in separate variables
                     int xIndex = cursor.getColumnIndex("accelerometer_x");
                     int yIndex = cursor.getColumnIndex("accelerometer_y");
                     int zIndex = cursor.getColumnIndex("accelerometer_z");
@@ -632,8 +602,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         return dataList;
     }//Read data from SQLite to use in Chart
-
-
 
 
     @Override
@@ -671,6 +639,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
+        currentSensor = null;
+        setContentView(R.layout.activity_main);
+        initialize();
         chartUpdateHandler.post(chartUpdateRunnable);
     }
 
