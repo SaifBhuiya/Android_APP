@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-        scheduleAlarm();
+
 
         //Bug Fix
         boolean firstLaunch = getSharedPreferences("AppPrefs", MODE_PRIVATE)
@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             editor.apply();
         }
 
-
+        //initiate foreground service
         Intent serviceIntent = new Intent(this, Foreground.class);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             startForegroundService(serviceIntent);
@@ -112,18 +112,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         foregroundServiceRunning();
 
 
-        Intent intent = new Intent("com.example.UPDATE_SENSOR_DATA");
-        intent.putExtra("light", current_light);
-        intent.putExtra("proximity", current_proximity);
-        intent.putExtra("accelerometer_x", current_accelerometer_x);
-        intent.putExtra("accelerometer_y", current_accelerometer_y);
-        intent.putExtra("accelerometer_z", current_accelerometer_z);
-        intent.putExtra("gyroscope_x", current_gyroscope_x);
-        intent.putExtra("gyroscope_y", current_gyroscope_y);
-        intent.putExtra("gyroscope_z", current_gyroscope_z);
-        this.sendBroadcast(intent);
-
-//
 
         //To hide Phone UI
         getWindow().getDecorView().setSystemUiVisibility(
@@ -131,11 +119,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         );
+
+
         //setting values to the variables declared earlier
         initialize();
-
-
+        //to show notification
         checkNotificationPermission();
+        //realtime chart updates
         startChartUpdates();
 
     }
@@ -234,27 +224,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onConfigurationChanged(newConfig);
     }//handle phone rotation
 
-
-    //
-    private void scheduleAlarm() {
-        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-        Intent intent = new Intent(this, AlarmReceiver.class);
-        PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
-        // Trigger alarm after 5 minutes (300000 milliseconds)
-        long triggerTime = System.currentTimeMillis() + 300000;
-
-        if (alarmManager != null) {
-            alarmManager.setExact(
-                    AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
-            );
-        }
-    }//Alarm every 5 mins
-
-
     public void initialize(){
         dbHelper = new DbHelper(this);
 
@@ -321,11 +290,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         testData.setText("");
                     }
                     else{
-                        dbHelper.insertSensorData(
-                                current_light, current_proximity,
-                                current_accelerometer_x, current_accelerometer_y, current_accelerometer_z,
-                                current_gyroscope_x, current_gyroscope_y, current_gyroscope_z
-                        );
                         testData.setText("Fetching Sensor data...");
                     }
                 } else if (currentSensor.equals("proximity")) {
@@ -336,11 +300,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
                     }
                     else{
-                        dbHelper.insertSensorData(
-                                current_light, current_proximity,
-                                current_accelerometer_x, current_accelerometer_y, current_accelerometer_z,
-                                current_gyroscope_x, current_gyroscope_y, current_gyroscope_z
-                        );
                         testData.setText("Fetching Sensor data...");
                     }
 
@@ -351,11 +310,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         testData.setText("");
 
                     }else{
-                        dbHelper.insertSensorData(
-                                current_light, current_proximity,
-                                current_accelerometer_x, current_accelerometer_y, current_accelerometer_z,
-                                current_gyroscope_x, current_gyroscope_y, current_gyroscope_z
-                        );
                         testData.setText("Fetching Sensor data...");
                     }
 
@@ -366,11 +320,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         testData.setText("");
 
                     }else{
-                        dbHelper.insertSensorData(
-                                current_light, current_proximity,
-                                current_accelerometer_x, current_accelerometer_y, current_accelerometer_z,
-                                current_gyroscope_x, current_gyroscope_y, current_gyroscope_z
-                        );
                         testData.setText("Fetching Sensor data...");
                     }
                 }
@@ -607,23 +556,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
     }//register sensor to read data
 
-    public String extractValue(String input, String label, String endDelimiter) {
-        int startIndex = input.indexOf(label);
-
-        if (startIndex == -1) {
-            return null; // Label not found
-        }
-
-        startIndex += label.length(); // Move index past the label
-        int endIndex = input.indexOf(endDelimiter, startIndex); // Find the custom end delimiter
-
-        if (endIndex == -1) {
-            // If the end delimiter is not found, take the rest of the string
-            endIndex = input.length();
-        }
-
-        return input.substring(startIndex, endIndex).trim(); // Extract and return the value
-    }
 
 
     public void back_button_click(View v){

@@ -8,12 +8,18 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Handler;
 import android.os.IBinder;
 import android.util.Log;
 import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Foreground extends Service implements SensorEventListener {
 
@@ -24,6 +30,10 @@ public class Foreground extends Service implements SensorEventListener {
     private NotificationCompat.Builder notificationBuilder;
     private static final int NOTIFICATION_ID = 1001;
     private static final String CHANNEL_ID = "Foreground Service";
+
+    private Timer timer;
+    private boolean isTimerRunning = false;
+    private Handler handler = new Handler();
 
     @Override
     public void onCreate() {
@@ -55,6 +65,30 @@ public class Foreground extends Service implements SensorEventListener {
         notificationBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.ic_launcher_foreground)
                 .setContentTitle("My Application");
+        startTimer();
+    }
+
+    private void startTimer() {
+        if (!isTimerRunning) {
+            timer = new Timer();
+            timer.scheduleAtFixedRate(new TimerTask() {
+                @Override
+                public void run() {
+                    // Perform periodic task here
+                    // For example, log or fetch data every second
+                    handler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            // Update UI or perform tasks on the UI thread if needed
+                            System.out.println("Timer is running in the foreground service");
+                            OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(ServiceHandler.class).build();
+                            WorkManager.getInstance(getApplicationContext()).enqueue(workRequest);
+                        }
+                    });
+                }
+            }, 0, 300000);
+            isTimerRunning = true;
+        }
     }
 
     public void registerSensor(Sensor sensorname){
@@ -71,6 +105,7 @@ public class Foreground extends Service implements SensorEventListener {
                     @Override
                     public void run() {
                         Log.d("TAG","Foreground service running");
+
                         try {
                             Thread.sleep(2000);
                         }
