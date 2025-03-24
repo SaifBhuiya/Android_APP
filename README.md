@@ -18,6 +18,12 @@ Then I landed on AlarmManager. AlarmManager is like setting an alarm at certain 
 So I used AlarmManager to send a signal every 5 mins for WorkManager to activate and update the database . This part was the worst for me. As these systems were completely new to me and I was bombarded with concepts and syntaxes. But slowly I crawled my way out, debugging and fixing systems until everything was working as intended.... or so I thought.  
 Just when I thought I was done, I realized the app didnt work when the app was removed from recent apps. I tried multiple permission settings but couldnt get it to work. So finally I used Foreground service to fix that. 
 Foreground service is basically a continuous execution (until stopped) and can run even when the phone is sleeping/ app is removed from recent apps. I could also do things like reading sensor data directly within the Foreground service. Working with it opened up multiple ways I could make the app interact and transfer data. 
+
+After I thought I was done (for the second time), I discovered a bug. I had doubts that the way I implemented AlarmManager could be the cause and after a few tests I confirmed it was. So having the knowledge of
+Foreground service and Timer (something I tested earlier) I replaced AlarmManager completely. 
+
+I initially used AlarmManager and WorkManager to bypass Foreground service but since I had to use Foreground service anyway, I felt like the project was more complicated than it needed to be. But I also believe "if it ain't broke, don't fix it" and also I wasnt given a deadline, so there was this rush to get out a working app as soon as I can so I didnt bother refactoring the code. But since there was a bug, it gave me a reason to go in and fix it which in turn made the code less complicated according to me. So it all worked out in the end I guess.
+
 Working with so many different systems and how they interact was overwhelming at first but I do have a basic understanding of how they work now.
 
 
