@@ -21,6 +21,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -75,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
-
+        scheduleAlarm();
 
         //Bug Fix
         boolean firstLaunch = getSharedPreferences("AppPrefs", MODE_PRIVATE)
@@ -112,6 +113,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         foregroundServiceRunning();
 
 
+        Intent intent = new Intent("com.example.UPDATE_SENSOR_DATA");
+        intent.putExtra("light", current_light);
+        intent.putExtra("proximity", current_proximity);
+        intent.putExtra("accelerometer_x", current_accelerometer_x);
+        intent.putExtra("accelerometer_y", current_accelerometer_y);
+        intent.putExtra("accelerometer_z", current_accelerometer_z);
+        intent.putExtra("gyroscope_x", current_gyroscope_x);
+        intent.putExtra("gyroscope_y", current_gyroscope_y);
+        intent.putExtra("gyroscope_z", current_gyroscope_z);
+        this.sendBroadcast(intent);
 
         //To hide Phone UI
         getWindow().getDecorView().setSystemUiVisibility(
@@ -121,12 +132,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         );
 
 
+
         //setting values to the variables declared earlier
         initialize();
         //to show notification
         checkNotificationPermission();
         //realtime chart updates
         startChartUpdates();
+
 
     }
 
@@ -326,6 +339,26 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }
         });
     }//Detect which card has been clicked and adjust view accordingly
+
+
+    private void scheduleAlarm() {
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+        Intent intent = new Intent(this, AlarmReceiver.class);
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        // Trigger alarm after 5 minutes (300000 milliseconds)
+        long triggerTime = System.currentTimeMillis() + 60000;
+
+        if (alarmManager != null) {
+            alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
+            );
+        }
+    }//Alarm every 5 mins
+
     private void LightChart(){
         //https://www.youtube.com/watch?v=KIW4Vp8mjLo
 
