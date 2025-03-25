@@ -346,18 +346,29 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         Intent intent = new Intent(this, AlarmReceiver.class);
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this, 0, intent, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE // FLAG_NO_CREATE prevents new PendingIntent creation
+        );
+
+        // Check if alarm is already scheduled
+        if (pendingIntent != null) {
+            // Alarm already exists, do nothing
+            return;
+        }
+
+        // Create a new PendingIntent since none exists
+        pendingIntent = PendingIntent.getBroadcast(
                 this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Trigger alarm after 5 minutes (300000 milliseconds)
-        long triggerTime = System.currentTimeMillis() + 60000;
+        long triggerTime = System.currentTimeMillis() + 1000;
 
         if (alarmManager != null) {
             alarmManager.setExact(
                     AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent
             );
         }
-    }//Alarm every 5 mins
+    }
+
 
     private void LightChart(){
         //https://www.youtube.com/watch?v=KIW4Vp8mjLo
