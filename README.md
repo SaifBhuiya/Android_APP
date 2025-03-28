@@ -12,12 +12,13 @@ Adding chart was as easy as following a video. But then I had to go in and creat
 
 The most challenging part for me however was the part where I had to keep the app running in the background while the app was closed. A lot of systems had to be moved around and things had to be re implemented. Also there were multiple possible ways to do it, all of which were new to me. 
 
-After some research I opted for WorkManager to handle the background execution (I read that it's supposed to be efficient). After implementing the whole system in WorkManager, I found out that the lowest amount of time for intervals is 15 mins.
+After some research I opted for WorkManager to handle the background execution (I read that it's supposed to be efficient). After implementing the whole system in WorkManager, I found out that the lowest amount of time for intervals is 15 mins (PeriodicWorkRequest).
 So the data would be updated every 15 minutes instead of 5 mins. So I tried finding options which would allow me to keep my progress so far and solve the timing issue.
 Then I landed on AlarmManager. AlarmManager is like setting an alarm at certain time intervals.
-So I used AlarmManager to send a signal every 5 mins for WorkManager to activate and update the database . This part was the worst for me. As these systems were completely new to me and I was bombarded with concepts and syntaxes. But slowly I crawled my way out, debugging and fixing systems until everything was working as intended.... or so I thought.  
-Just when I thought I was done, I realized the app didnt work when the app was removed from recent apps. I tried multiple permission settings but couldnt get it to work. So finally I used Foreground service to fix that. 
+So I used AlarmManager to send a signal every 5 mins for WorkManager to activate(OnetimeWorkRequest) and update the database . This part was the worst for me. As these systems were completely new to me and I was bombarded with concepts and syntaxes. But slowly I crawled my way out, debugging and fixing systems until everything was working as intended.... or so I thought.  
+Just when I thought I was done, I realized the app didnt work when the app was removed from recent apps. I tried multiple permission settings but couldnt get it to work. So finally I used Foreground service to try and fix that. 
 Foreground service is basically a continuous execution (until stopped) and can run even when the phone is sleeping/ app is removed from recent apps. I could also do things like reading sensor data directly within the Foreground service. Working with it opened up multiple ways I could make the app interact and transfer data. 
+After Implementing Foreground manager I found another bug. Using App inspector helpe me realize that the bug was related to how I implemented AlarmManager and so I went in and fixed that as well.
 
 Working with so many different systems and how they interact was overwhelming at first but I do have a basic understanding of how they work now.
 
