@@ -25,6 +25,7 @@ import android.os.SystemClock;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -689,6 +690,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
+//        long timestamp = System.currentTimeMillis();
+//        Log.d("SENSOR_REFRESH", "Sensor: " + event.sensor.getName() +
+//                " | Timestamp: " + timestamp +
+//                " | Value: " + event.values[0]);
         if(event.sensor.getType()==Sensor.TYPE_GYROSCOPE){
             gyro.setText("Gyroscope\n" + "X: " + event.values[0] + "\n" + "Y: " +event.values[1] + "\n" + "Z: " +event.values[2]);
             current_gyroscope_x = (event.values[0]);
